@@ -1,0 +1,20 @@
+services:
+  mysql_pe:
+    image: mysql:8.0
+    container_name: mysql_pe
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: appointments_pe
+    ports:
+      - "3308:3306"
+
+  mysql_cl:
+    image: mysql:8.0
+    container_name: mysql_cl
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: appointments_cl
+    ports:
+      - "3309:3306"

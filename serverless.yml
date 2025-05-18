@@ -1,0 +1,44 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: luancito
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: medical-appointment-backend
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource: "arn:aws:lambda:us-east-1:*:function:*"
+
+plugins:
+  - serverless-offline
+  - serverless-dynamodb-local
+
+custom:
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: false
+      migrate: true
+      dbPath: C:\Users\luis_\Downloads\dynamodb_local_latest\data
+    installPath: ./dynamodb
+
+functions:
+  appointment:
+    handler: src/handlers/appointment.handler
+    events:
+      - http:
+          path: appointments
+          method: post
+      - http:
+          path: appointments/{insuredId}
+          method: get
+
+  appointment_pe:
+    handler: src/handlers/appointment_pe.handler
+
+  appointment_cl:
+    handler: src/handlers/appointment_cl.handler
