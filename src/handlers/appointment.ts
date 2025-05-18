@@ -1,58 +1,63 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import { dynamoDb } from "../utils/dynamo";
-import AWS from "aws-sdk";
+import { Appointment } from "../domain/Appointment";
+import {
+  createAppointment,
+  getAppointment,
+} from "../services/appointmentService";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   const { insuredId, scheduleId, countryISO } = JSON.parse(event.body || "{}");
-  console.log("Main:", insuredId, scheduleId, countryISO);
-
-  const appointmentData = {
+  const appointmentData: Appointment = {
     insuredId,
     scheduleId,
     countryISO,
     status: "pending",
   };
+  try {
+    //create appointment
+    if (event.httpMethod === "POST") {
+      await createAppointment(appointmentData);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: "Appointment processed",
+          status: "completed",
+        }),
+      };
+    }
+    //get appointment bby id
+    if (event.httpMethod === "GET") {
+      const insuredId = event.pathParameters?.insuredId;
+      if (!insuredId) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "insuredId is required" }),
+        };
+      }
 
-  await dynamoDb
-    .put({
-      TableName: "Appointments",
-      Item: appointmentData,
-    })
-    .promise();
-
-  const lambda = new AWS.Lambda({
-    region: "us-east-1",
-    endpoint: "http://localhost:3002",
-  });
-
-  const countryLambda =
-    countryISO === "PE"
-      ? "medical-appointment-backend-dev-appointment_pe"
-      : "medical-appointment-backend-dev-appointment_cl";
-  console.log(appointmentData);
-
-  await lambda
-    .invoke({
-      FunctionName: countryLambda,
-      InvocationType: "RequestResponse",
-      Payload: JSON.stringify(appointmentData),
-    })
-    .promise();
-
-  await dynamoDb
-    .update({
-      TableName: "Appointments",
-      Key: { insuredId },
-      UpdateExpression: "set status = :s",
-      ExpressionAttributeValues: { ":s": "completed" },
-    })
-    .promise();
-
-  return {
-    statusCode: 200,
-    body: JSON.stringify({
-      message: "Appointment processed",
-      status: "completed",
-    }),
-  };
+      const appointment = await getAppointment(insuredId);
+      if (!appointment) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ message: "Appointment not found" }),
+        };
+      }
+      return {
+        statusCode: 200,
+        body: JSON.stringify(appointment),
+      };
+    }
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ message: "Method Not Allowed" }),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: "Internal Server Error",
+        error: error.message,
+      }),
+    };
+  }
 };
