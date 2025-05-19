@@ -3,6 +3,7 @@ import { Appointment, AppointmentRequest } from "../domain/Appointment";
 import {
   createAppointment,
   getAppointment,
+  isScheduleIdUnique,
 } from "../services/appointmentService";
 import { insuredExists } from "../services/insuredService";
 
@@ -46,6 +47,20 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           body: JSON.stringify({ message: "Insured not found" }),
         };
       }
+      const scheduleIdexist = await isScheduleIdUnique(
+        appointmentData.scheduleId,
+        appointmentData.countryISO
+      );
+      if (!scheduleIdexist) {
+        return {
+          statusCode: 409,
+          body: JSON.stringify({
+            message: "Schedule ID already exists",
+            status: "conflict",
+          }),
+        };
+      }
+
       await createAppointment(appointmentData);
       return {
         statusCode: 200,
