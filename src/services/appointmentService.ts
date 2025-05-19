@@ -43,7 +43,7 @@ export async function createAppointment(appointment: Appointment) {
   await updatePendingAppointment(
     appointment.insuredId,
     appointment.scheduleId,
-    appointment.status
+    "completed"
   );
 }
 
