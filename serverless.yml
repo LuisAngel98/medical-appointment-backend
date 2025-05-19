@@ -15,16 +15,6 @@ provider:
 
 plugins:
   - serverless-offline
-  - serverless-dynamodb-local
-
-custom:
-  dynamodb:
-    start:
-      port: 8000
-      inMemory: false
-      migrate: true
-      dbPath: C:\Users\luis_\Downloads\dynamodb_local_latest\data
-    installPath: ./dynamodb
 
 functions:
   appointment:
