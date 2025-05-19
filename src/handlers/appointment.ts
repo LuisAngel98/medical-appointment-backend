@@ -8,37 +8,37 @@ import {
 import { insuredExists } from "../services/insuredService";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
-  if (!event.body) {
-    return response(400, "Request body is missing");
-  }
-  let parsedBody: AppointmentRequest;
-  try {
-    parsedBody = JSON.parse(event.body);
-  } catch {
-    return response(400, "Invalid JSON format");
-  }
-  const { insuredId, scheduleId, countryISO } = parsedBody;
-
-  if (typeof insuredId !== "string" || !insuredId.trim()) {
-    return response(400, "Invalid or missing 'insuredId'");
-  }
-
-  if (typeof scheduleId !== "number" || scheduleId <= 0) {
-    return response(400, "Invalid or missing 'scheduleId'");
-  }
-
-  if (!["PE", "CL"].includes(countryISO)) {
-    return response(400, "Invalid or missing 'countryISO'");
-  }
-  const appointmentData: Appointment = {
-    insuredId,
-    scheduleId,
-    countryISO,
-    status: "pending",
-  };
   try {
     //create appointment
     if (event.httpMethod === "POST") {
+      if (!event.body) {
+        return response(400, "Request body is missing");
+      }
+      let parsedBody: AppointmentRequest;
+      try {
+        parsedBody = JSON.parse(event.body);
+      } catch {
+        return response(400, "Invalid JSON format");
+      }
+      const { insuredId, scheduleId, countryISO } = parsedBody;
+
+      if (typeof insuredId !== "string" || !insuredId.trim()) {
+        return response(400, "Invalid or missing 'insuredId'");
+      }
+
+      if (typeof scheduleId !== "number" || scheduleId <= 0) {
+        return response(400, "Invalid or missing 'scheduleId'");
+      }
+
+      if (!["PE", "CL"].includes(countryISO)) {
+        return response(400, "Invalid or missing 'countryISO'");
+      }
+      const appointmentData: Appointment = {
+        insuredId,
+        scheduleId,
+        countryISO,
+        status: "pending",
+      };
       // Check if the insured exists
       const exists = await insuredExists(insuredId);
       if (!exists) {
