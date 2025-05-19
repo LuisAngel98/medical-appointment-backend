@@ -47,9 +47,9 @@ export const handler: APIGatewayProxyHandler = async (event) => {
           body: JSON.stringify({ message: "Insured not found" }),
         };
       }
+      // Check if the scheduleId is unique
       const scheduleIdexist = await isScheduleIdUnique(
-        appointmentData.scheduleId,
-        appointmentData.countryISO
+        appointmentData.scheduleId
       );
       if (!scheduleIdexist) {
         return {

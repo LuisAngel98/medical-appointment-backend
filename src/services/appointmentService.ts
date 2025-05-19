@@ -91,21 +91,17 @@ export async function updatePendingAppointment(
     throw new Error("No se pudo actualizar el appointment");
   }
 }
-export async function isScheduleIdUnique(
-  scheduleId: number,
-  countryISO: string
-): Promise<boolean> {
+
+export async function isScheduleIdUnique(scheduleId: number): Promise<boolean> {
   const result = await dynamoDb.send(
     new ScanCommand({
       TableName: "Appointments",
-      FilterExpression: "#sid = :sid AND #ciso = :ciso",
+      FilterExpression: "#sid = :sid",
       ExpressionAttributeNames: {
         "#sid": "scheduleId",
-        "#ciso": "countryISO",
       },
       ExpressionAttributeValues: {
         ":sid": scheduleId,
-        ":ciso": countryISO,
       },
       Limit: 1,
     })
