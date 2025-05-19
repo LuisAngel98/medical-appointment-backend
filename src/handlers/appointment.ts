@@ -1,12 +1,33 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import { Appointment } from "../domain/Appointment";
+import { Appointment, AppointmentRequest } from "../domain/Appointment";
 import {
   createAppointment,
   getAppointment,
 } from "../services/appointmentService";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
-  const { insuredId, scheduleId, countryISO } = JSON.parse(event.body || "{}");
+  if (!event.body) {
+    return response(400, "Request body is missing");
+  }
+  let parsedBody: AppointmentRequest;
+  try {
+    parsedBody = JSON.parse(event.body);
+  } catch {
+    return response(400, "Invalid JSON format");
+  }
+  const { insuredId, scheduleId, countryISO } = parsedBody;
+
+  if (typeof insuredId !== "string" || !insuredId.trim()) {
+    return response(400, "Invalid or missing 'insuredId'");
+  }
+
+  if (typeof scheduleId !== "number" || scheduleId <= 0) {
+    return response(400, "Invalid or missing 'scheduleId'");
+  }
+
+  if (!["PE", "CL"].includes(countryISO)) {
+    return response(400, "Invalid or missing 'countryISO'");
+  }
   const appointmentData: Appointment = {
     insuredId,
     scheduleId,
@@ -21,11 +42,11 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         statusCode: 200,
         body: JSON.stringify({
           message: "Appointment processed",
-          status: "completed",
+          status: "pending",
         }),
       };
     }
-    //get appointment bby id
+    //get appointment by id
     if (event.httpMethod === "GET") {
       const insuredId = event.pathParameters?.insuredId;
       if (!insuredId) {
@@ -61,3 +82,8 @@ export const handler: APIGatewayProxyHandler = async (event) => {
     };
   }
 };
+
+const response = (statusCode: number, message: string) => ({
+  statusCode,
+  body: JSON.stringify({ message }),
+});

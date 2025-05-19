@@ -2,15 +2,16 @@ import AWS from "aws-sdk";
 
 import { dynamoDb } from "../infra/dynamoDb";
 import { Appointment } from "../domain/Appointment";
+import { GetCommand, PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 
 export async function createAppointment(appointment: Appointment) {
   // Save in DynamoDB
-  await dynamoDb
-    .put({
+  await dynamoDb.send(
+    new PutCommand({
       TableName: "Appointments",
       Item: appointment,
     })
-    .promise();
+  );
   const lambda = new AWS.Lambda({
     region: "us-east-1",
     endpoint: "http://localhost:3002",
@@ -28,11 +29,11 @@ export async function createAppointment(appointment: Appointment) {
     })
     .promise();
 
-  await dynamoDb
-    .update({
+  await dynamoDb.send(
+    new UpdateCommand({
       TableName: "Appointments",
       Key: { insuredId: appointment.insuredId },
-      UpdateExpression: "set #st = :s",
+      UpdateExpression: "SET #st = :s",
       ExpressionAttributeNames: {
         "#st": "status",
       },
@@ -40,16 +41,45 @@ export async function createAppointment(appointment: Appointment) {
         ":s": "completed",
       },
     })
-    .promise();
+  );
 }
 
 export async function getAppointment(insuredId: string) {
-  const result = await dynamoDb
-    .get({
-      TableName: "Appointments",
-      Key: { insuredId },
-    })
-    .promise();
+  try {
+    const result = await dynamoDb.send(
+      new GetCommand({
+        TableName: "Appointments",
+        Key: { insuredId },
+      })
+    );
 
-  return result.Item;
+    return result.Item;
+  } catch (error) {
+    console.error("Error al obtener el appointment:", error);
+    throw new Error("No se pudo obtener el appointment");
+  }
+}
+
+export async function updatePendingAppointment(
+  insuredId: string,
+  status: string
+) {
+  try {
+    await dynamoDb.send(
+      new UpdateCommand({
+        TableName: "Appointments",
+        Key: { insuredId },
+        UpdateExpression: "SET #st = :s",
+        ExpressionAttributeNames: {
+          "#st": "status",
+        },
+        ExpressionAttributeValues: {
+          ":s": status,
+        },
+      })
+    );
+  } catch (error) {
+    console.error("Error al actualizar el appointment:", error);
+    throw new Error("No se pudo actualizar el appointment");
+  }
 }
