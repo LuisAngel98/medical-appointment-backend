@@ -3,13 +3,11 @@ import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { dynamoDb } from "../infra/dynamoDb";
 import { Appointment } from "../domain/Appointment";
 import {
-  GetCommand,
   PutCommand,
   UpdateCommand,
   ScanCommand,
   QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
-import { log } from "node:console";
 
 const lambda = new LambdaClient({
   region: "us-east-1",
