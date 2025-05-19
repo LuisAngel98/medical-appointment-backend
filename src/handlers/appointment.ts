@@ -2,7 +2,7 @@ import { APIGatewayProxyHandler } from "aws-lambda";
 import { Appointment, AppointmentRequest } from "../domain/Appointment";
 import {
   createAppointment,
-  getAppointment,
+  getAppointments,
   isScheduleIdUnique,
 } from "../services/appointmentService";
 import { insuredExists } from "../services/insuredService";
@@ -49,6 +49,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
       }
       // Check if the scheduleId is unique
       const scheduleIdexist = await isScheduleIdUnique(
+        appointmentData.insuredId,
         appointmentData.scheduleId
       );
       if (!scheduleIdexist) {
@@ -79,7 +80,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         };
       }
 
-      const appointment = await getAppointment(insuredId);
+      const appointment = await getAppointments(insuredId);
       if (!appointment) {
         return {
           statusCode: 404,

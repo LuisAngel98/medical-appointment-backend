@@ -7,7 +7,9 @@ import {
   PutCommand,
   UpdateCommand,
   ScanCommand,
+  QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { log } from "node:console";
 
 const lambda = new LambdaClient({
   region: "us-east-1",
@@ -20,9 +22,10 @@ export async function createAppointment(appointment: Appointment) {
     new PutCommand({
       TableName: "Appointments",
       Item: appointment,
+      ConditionExpression:
+        "attribute_not_exists(insuredId) AND attribute_not_exists(scheduleId)",
     })
   );
-
   // Save in Lambda
   const countryLambda =
     appointment.countryISO === "PE"
@@ -37,46 +40,46 @@ export async function createAppointment(appointment: Appointment) {
   await lambda.send(command);
 
   // Update status in DynamoDB
-  await dynamoDb.send(
-    new UpdateCommand({
-      TableName: "Appointments",
-      Key: { insuredId: appointment.insuredId },
-      UpdateExpression: "SET #st = :s",
-      ExpressionAttributeNames: {
-        "#st": "status",
-      },
-      ExpressionAttributeValues: {
-        ":s": "completed",
-      },
-    })
+  await updatePendingAppointment(
+    appointment.insuredId,
+    appointment.scheduleId,
+    appointment.status
   );
 }
 
-export async function getAppointment(insuredId: string) {
+export async function getAppointments(insuredId: string) {
   try {
     const result = await dynamoDb.send(
-      new GetCommand({
+      new ScanCommand({
         TableName: "Appointments",
-        Key: { insuredId },
+        FilterExpression: "#iid = :iid",
+        ExpressionAttributeNames: {
+          "#iid": "insuredId",
+        },
+        ExpressionAttributeValues: {
+          ":iid": insuredId,
+        },
       })
     );
-
-    return result.Item;
+    return result.Items ?? [];
   } catch (error) {
-    console.error("Error al obtener el appointment:", error);
-    throw new Error("No se pudo obtener el appointment");
+    console.error("Error al obtener los appointments:", error);
+    throw new Error("No se pudieron obtener los appointments");
   }
 }
-
 export async function updatePendingAppointment(
   insuredId: string,
+  scheduleId: number,
   status: string
 ) {
   try {
     await dynamoDb.send(
       new UpdateCommand({
         TableName: "Appointments",
-        Key: { insuredId },
+        Key: {
+          insuredId: insuredId,
+          scheduleId: scheduleId,
+        },
         UpdateExpression: "SET #st = :s",
         ExpressionAttributeNames: {
           "#st": "status",
@@ -92,19 +95,22 @@ export async function updatePendingAppointment(
   }
 }
 
-export async function isScheduleIdUnique(scheduleId: number): Promise<boolean> {
+export async function isScheduleIdUnique(
+  insuredId: string,
+  scheduleId: number
+): Promise<boolean> {
+  console.log("Checking if scheduleId is unique");
   const result = await dynamoDb.send(
-    new ScanCommand({
+    new QueryCommand({
       TableName: "Appointments",
-      FilterExpression: "#sid = :sid",
-      ExpressionAttributeNames: {
-        "#sid": "scheduleId",
-      },
+      KeyConditionExpression: "insuredId = :id AND scheduleId = :sid",
       ExpressionAttributeValues: {
+        ":id": insuredId,
         ":sid": scheduleId,
       },
       Limit: 1,
     })
   );
+
   return (result.Items?.length ?? 0) === 0;
 }
