@@ -1,23 +1,13 @@
-import AWS from "aws-sdk";
-
 import { dynamoDb } from "../infra/dynamoDb";
+import { GetCommand } from "@aws-sdk/lib-dynamodb";
 
-import { Insured } from "../domain/Insured";
+export async function insuredExists(insuredId: string): Promise<boolean> {
+  const params = {
+    TableName: "Insured",
+    Key: { insuredId },
+  };
 
-import { GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
-
-export async function getInsured(insuredId: string) {
-  try {
-    const result = await dynamoDb.send(
-      new GetCommand({
-        TableName: "Insured",
-        Key: { insuredId },
-      })
-    );
-
-    return result.Item;
-  } catch (error) {
-    console.error("Error al obtener el insured:", error);
-    throw new Error("No se pudo obtener el insured");
-  }
+  const command = new GetCommand(params);
+  const result = await dynamoDb.send(command);
+  return !!result.Item;
 }

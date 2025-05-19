@@ -4,6 +4,7 @@ import {
   createAppointment,
   getAppointment,
 } from "../services/appointmentService";
+import { insuredExists } from "../services/insuredService";
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   if (!event.body) {
@@ -37,6 +38,14 @@ export const handler: APIGatewayProxyHandler = async (event) => {
   try {
     //create appointment
     if (event.httpMethod === "POST") {
+      // Check if the insured exists
+      const exists = await insuredExists(insuredId);
+      if (!exists) {
+        return {
+          statusCode: 404,
+          body: JSON.stringify({ message: "Insured not found" }),
+        };
+      }
       await createAppointment(appointmentData);
       return {
         statusCode: 200,
@@ -46,7 +55,6 @@ export const handler: APIGatewayProxyHandler = async (event) => {
         }),
       };
     }
-    //get appointment by id
     if (event.httpMethod === "GET") {
       const insuredId = event.pathParameters?.insuredId;
       if (!insuredId) {
